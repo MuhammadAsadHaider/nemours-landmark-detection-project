@@ -30,7 +30,7 @@ model.to(device)
 
 # Define your loss function and optimizer
 criterion = nn.SmoothL1Loss()
-optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
 
 transform = transforms.Compose([
@@ -115,7 +115,7 @@ for fold, (train_indices, test_indices) in enumerate(kfold.split(image_paths)):
     dataloader_train = torch.utils.data.DataLoader(train_dataset, batch_size=32, shuffle=True)
     dataloader_test = torch.utils.data.DataLoader(test_dataset, batch_size=32, shuffle=True)
 
-    num_epochs = 50
+    num_epochs = 200
 
     train_losses = []
     test_losses = []
