@@ -94,7 +94,7 @@ class CustomDataset(Dataset):
         return image, target
 
 
-with open("targets.json") as f:
+with open("targets_new.json") as f:
     data = json.load(f)
 
 
@@ -124,6 +124,7 @@ for fold, (train_indices, test_indices) in enumerate(kfold.split(image_paths)):
     test_epoch_losses = []
     test_epoch_ious = []
     lowest_test_loss = 100000000
+    max_iou = 0
 
     for epoch in range(num_epochs):
         model.train()
@@ -180,7 +181,8 @@ for fold, (train_indices, test_indices) in enumerate(kfold.split(image_paths)):
             for i in range(len(outputs)):
                 iou = calculate_iou(labels[i].detach().cpu().numpy(), outputs[i].detach().cpu().numpy())
                 batch_ious.append(iou)
-            test_ious.append(np.mean(batch_ious))
+            batch_iou = np.mean(batch_ious)
+            test_ious.append(batch_iou)
 
             test_running_loss += loss.item()
             test_losses.append(loss.item())
@@ -192,9 +194,13 @@ for fold, (train_indices, test_indices) in enumerate(kfold.split(image_paths)):
         test_epoch_iou = np.mean(test_ious)
         test_epoch_ious.append(test_epoch_iou)
 
+        if test_epoch_iou > max_iou:
+            max_iou = test_epoch_iou
+            torch.save(model.state_dict(), f"model_fold{fold}_epoch{epoch}_iou.pth")
+
         if test_epoch_loss < lowest_test_loss:
             lowest_test_loss = test_epoch_loss
-            torch.save(model.state_dict(), f"model_fold{fold}_epoch{epoch}.pth")
+            torch.save(model.state_dict(), f"model_fold{fold}_epoch{epoch}_loss.pth")
     
 
     # save the losses as numpy arrays
@@ -206,28 +212,34 @@ for fold, (train_indices, test_indices) in enumerate(kfold.split(image_paths)):
     np.save(f"test_ious_raw_{fold}.npy", test_ious)
 
     # plot and save the losses
+    plt.figure()
     plt.plot(train_epoch_losses, label="train")
     plt.legend()
     plt.savefig(f"train_loss_{fold}.png")
 
+    plt.figure()
     plt.plot(test_epoch_losses, label="test")
     plt.legend()
     plt.savefig(f"test_loss_{fold}.png")
 
     # plot the losses
+    plt.figure()
     plt.plot(train_losses, label="train")
     plt.legend()
     plt.savefig(f"train_loss_raw_{fold}.png")
 
+    plt.figure()
     plt.plot(test_losses, label="test")
     plt.legend()
     plt.savefig(f"test_loss_raw_{fold}.png")
 
     # plot the ious
+    plt.figure()
     plt.plot(test_epoch_ious, label="test")
     plt.legend()
     plt.savefig(f"test_ious_{fold}.png")
 
+    plt.figure()
     plt.plot(test_ious, label="test")
     plt.legend()
     plt.savefig(f"test_ious_raw_{fold}.png")
